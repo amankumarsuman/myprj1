@@ -12,6 +12,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import SaveIcon from '@mui/icons-material/Save';
 import DeleteIcon from "@mui/icons-material/Delete";
 
+import * as XLSX from "xlsx/xlsx.mjs";
 
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
@@ -45,13 +46,71 @@ const StyledTableRow = styled(TableRow)(({ theme }) => ({
 }));
 
 
-export default function CustomizedTables({data}) {
+export default function CustomizedTables() {
     const [isLoading,setIsLoading]=React.useState(true)
     const [edit,setEdit]=React.useState(null)
-    const [tableData,setTableData]=React.useState(data)
+    // const [tableData,setTableData]=React.useState(data)
  
 
+    const [data, setData] = React.useState();
+    const [column, setColumn] = React.useState();
+  
+    const convertDataToJsonData = (header, data) => {
+      const rows = [];
+      //here first for each loop will give me row
+      // and second foreach loop will give me data
+      data.forEach((row) => {
+        const rowData = {};
+        row.forEach((el, i) => {
+          rowData[header[i]] = el;
+        });
+        var fileDatas = JSON.parse(
+          JSON.stringify(rowData).replace(/\s(?=\w+":)/g, "")
+        );
+        rows.push(fileDatas);
+      });
+      return rows;
+    };
+    const importExcelData = (e) => {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const binaryString = event.target.result;
+        const allData = XLSX.read(binaryString, { type: "binary" });
+  
+        //get first sheet from csv file
+        const sheetName = allData.SheetNames[0];
+        const sheet = allData.Sheets[sheetName];
+        // console.log(sheet.v.trim());
+        //converting into array
+        var fileData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+  
+        // console.log(fileDatas);
+        //Extracting headers data
+  
+        const headers = fileData[0];
+  
+        const head = headers.map((head) => ({
+          title: head.split(" ").join("_"),
+          field: head.split(" ").join("_"),
+        }));
+        setColumn(head);
+        console.log(headers);
+        // deleting header so that in our data array only data should remain
+        //  so that I can use them in table
+  
+        fileData.splice(0, 1);
+        setData(convertDataToJsonData(headers, fileData));
+      };
+  
+      reader.readAsBinaryString(file);
+    };
+  
+
+
   return (
+     <>
+      <input type="file" onChange={importExcelData} />
     <TableContainer component={Paper}>
       <Table sx={{ minWidth: 700 }} aria-label="customized table">
         <TableHead>
@@ -138,5 +197,6 @@ export default function CustomizedTables({data}) {
                   </TableBody>
       </Table>
     </TableContainer>
+     </> 
   );
 }
